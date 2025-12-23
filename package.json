@@ -9,7 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@near-wallet-selector/core": "^10.1.4",
+    "@near-wallet-selector/ledger": "^10.1.4",
+    "@near-wallet-selector/modal-ui": "^10.1.4",
+    "@near-wallet-selector/my-near-wallet": "^10.1.4",
+    "@near-wallet-selector/hot-wallet": "^10.1.4",
+    "@near-wallet-selector/near-wallet": "^8.9.3",
     "lucide-react": "^0.561.0",
+    "near-api-js": "^2.1.4",
     "near-social-js": "^2.0.3",
     "next": "16.0.8",
     "react": "19.2.1",

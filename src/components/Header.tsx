@@ -11,7 +11,7 @@ import { useWallet } from "../context/WalletContext";
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
-  const { isConnected, walletName, connect, disconnect } = useWallet();
+  const { isConnected, walletName, balance, connect, disconnect, isLoading } = useWallet();
   const { toasts, addToast, removeToast } = useToast();
   const [showWalletPanel, setShowWalletPanel] = useState(false);
 
@@ -83,16 +83,21 @@ export default function Header() {
               <>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     // When user connects, underline Home (without adding a background).
                     setActiveRoute("/");
-                    connect();
-                    router.push("/connect");
+                    try {
+                      await connect();
+                      addToast("Wallet connected successfully", "success");
+                    } catch (error) {
+                      addToast("Failed to connect wallet", "error");
+                    }
                   }}
-                  className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition"
+                  disabled={isLoading}
+                  className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Wallet className="h-4 w-4" />
-                  Connect Wallet
+                  {isLoading ? "Connecting..." : "Connect Wallet"}
                 </button>
                 <button
                   type="button"
@@ -119,7 +124,9 @@ export default function Header() {
                     </div>
                     {/* Right section with balance and NEAR logo */}
                     <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500">
-                      <span className="text-sm font-semibold text-gray-700">2.32</span>
+                      <span className="text-sm font-semibold text-gray-700">
+                        {balance ? parseFloat(balance).toFixed(2) : "0.00"}
+                      </span>
                       <Image
                         src="/near-protocol.png"
                         alt="NEAR Protocol"
@@ -134,13 +141,18 @@ export default function Header() {
                   {showWalletPanel && (
                     <WalletPanel
                       walletName={walletName ?? ""}
+                      balanceNear={balance ? `${parseFloat(balance).toFixed(2)} NEAR` : "0.00 NEAR"}
                       onClose={() => setShowWalletPanel(false)}
-                      onDisconnect={() => {
-                        setShowWalletPanel(false);
-                        disconnect();
-                        setActiveRoute("");
-                        addToast("Wallet disconnected", "success");
-                        router.push("/");
+                      onDisconnect={async () => {
+                        try {
+                          await disconnect();
+                          setShowWalletPanel(false);
+                          setActiveRoute("");
+                          addToast("Wallet disconnected", "success");
+                          router.push("/");
+                        } catch (error) {
+                          addToast("Failed to disconnect wallet", "error");
+                        }
                       }}
                     />
                   )}

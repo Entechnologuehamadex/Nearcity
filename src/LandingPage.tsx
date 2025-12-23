@@ -7,7 +7,7 @@ import { useWallet } from "./context/WalletContext";
 
 export default function LandingPage() {
   const router = useRouter();
-  const { connect } = useWallet();
+  const { connect, isLoading } = useWallet();
 
   return (
     <>
@@ -25,10 +25,21 @@ export default function LandingPage() {
 
           <div className="mt-8 items-center justify-center gap-4">
             <div className="flex items-center justify-center gap-4">
-              <button type="button" onClick={() => { connect(); router.push('/connect'); setTimeout(() => window.dispatchEvent(new CustomEvent('nearcity-toast', { detail: { message: 'Wallet connected', type: 'success' } })), 50); }} className="hidden md:inline-flex
-             items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 text-white">
+              <button 
+                type="button" 
+                onClick={async () => { 
+                  try {
+                    await connect();
+                    window.dispatchEvent(new CustomEvent('nearcity-toast', { detail: { message: 'Wallet connected', type: 'success' } }));
+                  } catch (error) {
+                    window.dispatchEvent(new CustomEvent('nearcity-toast', { detail: { message: 'Failed to connect wallet', type: 'error' } }));
+                  }
+                }} 
+                disabled={isLoading}
+                className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <Wallet className="h-4 w-4" />
-                Connect Wallet
+                {isLoading ? "Connecting..." : "Connect Wallet"}
               </button>
               <button type="button" onClick={() => router.push('/menu')} className="md:hidden inline-flex items-center gap-2 px-3 py-2 rounded-full border">
                 <Menu className="h-4 w-4" />

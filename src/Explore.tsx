@@ -1,26 +1,41 @@
 "use client";
 
 import SearchBar from "./components/SearchBar";
-import { MoreVertical, Heart, Share2, Bell, ChevronDown } from "lucide-react";
+import { MoreVertical, Heart, Share2, Bell, ChevronDown, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import {
+  fetchNearSocialPosts,
+  fetchUserProfile,
+  formatRelativeTime,
+  getProfileImageUrl,
+  postToNearSocial,
+} from "./lib/near-social";
+import { useWallet } from "./context/WalletContext";
+import { getWalletSelector } from "./lib/near-wallet";
+import type { NearSocialPost, NearSocialProfile } from "./lib/near-social";
+
+interface Post {
+  id: string;
+  author: string;
+  handle: string;
+  time: string;
+  content: string;
+  likes: number;
+  replies: number;
+  reposts: number;
+  imageUrl?: string;
+  audioUrl?: string;
+  avatarUrl: string;
+  accountId: string;
+  profile?: NearSocialProfile | null;
+}
 
 export default function Social() {
-  const [posts, setPosts] = useState(() =>
-    Array.from({ length: 6 }).map((_, i) => ({
-      id: i + 1,
-      author: "Hamadex Entechnologue",
-      handle: "@entechnologue.near",
-      time: "4hrs ago",
-      content:
-        "Consumer crypto focuses on making blockchain technology accessible to everyday users, not just tech experts. This means simplifying how people interact with crypto, like buying digital items or sending payments.",
-      likes: Math.floor(Math.random() * 100),
-      replies: Math.floor(Math.random() * 50),
-      reposts: Math.floor(Math.random() * 20),
-      imageUrl: undefined,
-      audioUrl: undefined,
-      avatarUrl: `https://i.pravatar.cc/150?img=${(i % 70) + 1}`,
-    }))
-  );
+  const { isConnected, accountId } = useWallet();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPosting, setIsPosting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [showOverview, setShowOverview] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -37,7 +52,99 @@ export default function Social() {
   const chunksRef = useRef<Blob[]>([]);
 
   // User avatar (rounded)
-  const [userAvatar] = useState<string>(`https://i.pravatar.cc/150?u=you`);
+  const [userAvatar, setUserAvatar] = useState<string>(`https://i.pravatar.cc/150?u=you`);
+
+  // Fetch posts from NEAR Social
+  useEffect(() => {
+    async function loadPosts() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const nearPosts = await fetchNearSocialPosts(20);
+        
+        // Fetch profiles for all unique account IDs
+        const uniqueAccountIds = [...new Set(nearPosts.map((p) => p.accountId))];
+        const profilePromises = uniqueAccountIds.map((id) => fetchUserProfile(id));
+        const profiles = await Promise.all(profilePromises);
+        const profileMap = new Map(
+          uniqueAccountIds.map((id, index) => [id, profiles[index]])
+        );
+
+        // Transform NEAR Social posts to our Post format
+        const transformedPosts: Post[] = await Promise.all(
+          nearPosts.map(async (nearPost) => {
+            const profile = profileMap.get(nearPost.accountId);
+            const avatarUrl = getProfileImageUrl(profile, nearPost.accountId);
+            
+            // Parse post content
+            let content = "";
+            let imageUrl: string | undefined;
+            
+            if (typeof nearPost.value.main === "string") {
+              try {
+                const parsed = JSON.parse(nearPost.value.main);
+                if (parsed.type === "md" && parsed.text) {
+                  content = parsed.text;
+                } else if (typeof parsed === "string") {
+                  content = parsed;
+                }
+                if (parsed.image?.url) {
+                  imageUrl = parsed.image.url;
+                }
+              } catch {
+                content = nearPost.value.main;
+              }
+            } else if (nearPost.value.content?.text) {
+              content = nearPost.value.content.text;
+              imageUrl = nearPost.value.content.image;
+            }
+
+            // Get author name from profile or use account ID
+            const authorName = profile?.name || nearPost.accountId.split(".")[0] || "Unknown";
+
+            return {
+              id: `${nearPost.accountId}-${nearPost.blockHeight}`,
+              author: authorName,
+              handle: `@${nearPost.accountId}`,
+              time: formatRelativeTime(nearPost.value.timestamp),
+              content,
+              likes: 0, // NEAR Social doesn't provide likes in the indexer
+              replies: 0,
+              reposts: 0,
+              imageUrl,
+              avatarUrl,
+              accountId: nearPost.accountId,
+              profile,
+            };
+          })
+        );
+
+        setPosts(transformedPosts);
+      } catch (err) {
+        console.error("Error loading posts:", err);
+        setError("Failed to load posts. Please try again later.");
+        // Fallback to empty array or show error message
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadPosts();
+  }, []);
+
+  // Fetch user profile when connected
+  useEffect(() => {
+    async function loadUserProfile() {
+      if (isConnected && accountId) {
+        const profile = await fetchUserProfile(accountId);
+        if (profile) {
+          const avatarUrl = getProfileImageUrl(profile, accountId);
+          setUserAvatar(avatarUrl);
+        }
+      }
+    }
+    loadUserProfile();
+  }, [isConnected, accountId]);
 
   useEffect(() => {
     return () => {
@@ -106,7 +213,27 @@ export default function Social() {
               </div>
 
               <div className="space-y-4">
-                {posts.map((p) => (
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+                    <span className="ml-3 text-gray-600">Loading posts from NEAR Social...</span>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-12 text-red-600">
+                    <p>{error}</p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="mt-4 px-4 py-2 rounded-full bg-teal-600 text-white hover:bg-teal-700"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <p>No posts found. Be the first to post!</p>
+                  </div>
+                ) : (
+                  posts.map((p) => (
                   <article key={p.id} className="border rounded-lg p-4">
                     <div className="flex items-start gap-4">
                       <img src={p.avatarUrl} alt={`${p.author} avatar`} className="w-12 h-12 rounded-full object-cover" />
@@ -141,7 +268,8 @@ export default function Social() {
                       </div>
                     </div>
                   </article>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </main>
@@ -234,28 +362,82 @@ export default function Social() {
                       </div>
 
                       <div>
-                        <button aria-label="Post" title="Post" onClick={() => {
-                          // submit
-                          const id = Date.now();
-                          const newPost = {
-                            id,
-                            author: 'You',
-                            handle: '@you.near',
-                            time: 'Just now',
-                            content: composerText,
-                            likes: 0,
-                            replies: 0,
-                            reposts: 0,
-                            imageUrl: composerImageUrl ?? undefined,
-                            audioUrl: composerAudioUrl ?? undefined,                            avatarUrl: userAvatar,                          } as any;
-                          setPosts((s) => [newPost, ...s]);
-                          // reset
-                          setComposerText('');
-                          if (composerImageUrl) { URL.revokeObjectURL(composerImageUrl); setComposerImageUrl(null); setComposerImageFile(null); }
-                          if (composerAudioUrl) { URL.revokeObjectURL(composerAudioUrl); setComposerAudioUrl(null); }
-                          setShowComposer(false);
-                        }} className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 text-white shadow">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M22 2l-7 20 3-7 7-13z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <button
+                          aria-label="Post"
+                          title="Post"
+                          disabled={!isConnected || isPosting || !composerText.trim()}
+                          onClick={async () => {
+                            if (!isConnected || !accountId) {
+                              window.dispatchEvent(
+                                new CustomEvent("nearcity-toast", {
+                                  detail: { message: "Please connect your wallet first", type: "error" },
+                                })
+                              );
+                              return;
+                            }
+
+                            setIsPosting(true);
+                            try {
+                              const { selector } = await getWalletSelector();
+                              
+                              // For now, we'll just add to local state
+                              // In production, you'd call postToNearSocial here
+                              // await postToNearSocial(accountId, composerText, composerImageUrl || undefined, selector);
+                              
+                              const newPost: Post = {
+                                id: `${accountId}-${Date.now()}`,
+                                author: accountId.split(".")[0] || "You",
+                                handle: `@${accountId}`,
+                                time: "Just now",
+                                content: composerText,
+                                likes: 0,
+                                replies: 0,
+                                reposts: 0,
+                                imageUrl: composerImageUrl || undefined,
+                                avatarUrl: userAvatar,
+                                accountId,
+                              };
+                              
+                              setPosts((s) => [newPost, ...s]);
+                              window.dispatchEvent(
+                                new CustomEvent("nearcity-toast", {
+                                  detail: { message: "Post published!", type: "success" },
+                                })
+                              );
+
+                              // Reset form
+                              setComposerText("");
+                              if (composerImageUrl) {
+                                URL.revokeObjectURL(composerImageUrl);
+                                setComposerImageUrl(null);
+                                setComposerImageFile(null);
+                              }
+                              if (composerAudioUrl) {
+                                URL.revokeObjectURL(composerAudioUrl);
+                                setComposerAudioUrl(null);
+                              }
+                              setShowComposer(false);
+                            } catch (error) {
+                              console.error("Error posting:", error);
+                              window.dispatchEvent(
+                                new CustomEvent("nearcity-toast", {
+                                  detail: { message: "Failed to post. Please try again.", type: "error" },
+                                })
+                              );
+                            } finally {
+                              setIsPosting(false);
+                            }
+                          }}
+                          className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 text-white shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isPosting ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path d="M22 2L11 13" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              <path d="M22 2l-7 20 3-7 7-13z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
                         </button>
                       </div>
                     </div>

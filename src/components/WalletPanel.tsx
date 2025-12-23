@@ -31,7 +31,7 @@ export default function WalletPanel({ walletName, balanceUsd = "$120.05", balanc
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-sm text-gray-500">{walletName}</div>
-              <div className="text-xs text-gray-400">0xd7743e22...34e</div>
+              <div className="text-xs text-gray-400">{walletName ? `${walletName.slice(0, 8)}...${walletName.slice(-6)}` : ""}</div>
             </div>
             <div className="flex items-center gap-2">
               <button title="Copy address" className="p-2 rounded-full bg-gray-100 hover:bg-gray-200" onClick={() => navigator.clipboard?.writeText(walletName)}>
@@ -47,10 +47,12 @@ export default function WalletPanel({ walletName, balanceUsd = "$120.05", balanc
             <div className="text-sm text-gray-500">Total portfolio</div>
             <div className="text-3xl font-extrabold mt-2 text-gray-900">{balanceUsd}</div>
 
-            <div className="mt-4 rounded-xl overflow-hidden bg-gradient-to-r from-teal-600 to-cyan-400 text-white p-4 flex items-center justify-between">
+              <div className="mt-4 rounded-xl overflow-hidden bg-gradient-to-r from-teal-600 to-cyan-400 text-white p-4 flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium">Near</div>
-                <div className="text-2xl font-bold mt-1">$6.15</div>
+                <div className="text-2xl font-bold mt-1">
+                  ${balanceNear ? (parseFloat(balanceNear.split(" ")[0]) * 6.15).toFixed(2) : "0.00"}
+                </div>
                 <div className="text-xs opacity-90">{balanceNear}</div>
               </div>
               <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
