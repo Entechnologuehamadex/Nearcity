@@ -224,6 +224,27 @@ The NEAR RPC API allows direct communication with the NEAR blockchain network. A
 
 ---
 
+## NEAR Social Indexer / NEAR Social API
+
+The frontend uses a public NEAR Social indexer to fetch social posts and profiles. By default the project uses the env var `NEXT_PUBLIC_NEAR_SOCIAL_API` and falls back to `https://social.everything.dev` if not set.
+
+If posts or profiles do not appear in the UI, the most common causes are:
+- The public indexer endpoint is unavailable or rate-limited
+- Network/CORS issues when calling RPC directly from the browser
+
+Troubleshooting steps:
+1. Set a working indexer URL in `.env.local`, e.g.:
+
+```env
+NEXT_PUBLIC_NEAR_SOCIAL_API=https://social.everything.dev
+# or another compatible indexer endpoint
+```
+
+2. Restart the dev server (`npm run dev`) after updating `.env.local`.
+3. Check the browser console for network or CORS errors and the server logs for SDK errors.
+
+---
+
 ## @near-js SDK Packages
 
 ### Installation

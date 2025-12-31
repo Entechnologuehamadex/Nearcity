@@ -5,38 +5,38 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function Dapps() {
-  const router = useRouter();
-  const [dapps] = useState(() => [
-    { id: 1, name: "Hot Protocol", tagline: "Create your HOT wallet and start earning $HOT", tags: ["Infrastructure", "Wallet"], badge: "NEW" },
-    { id: 2, name: "Public AI", tagline: "Every human contributes data to train AI", tags: ["Infrastructure", "AI"], badge: null },
-    { id: 3, name: "NEAR Intents", tagline: "A single way to move users, agents and services", tags: ["Infrastructure", "DEX"], badge: "NEW" },
-  ]);
+  // const router = useRouter();
+  // const [dapps] = useState(() => [
+  //   { id: 1, name: "Hot Protocol", tagline: "Create your HOT wallet and start earning $HOT", tags: ["Infrastructure", "Wallet"], badge: "NEW" },
+  //   { id: 2, name: "Public AI", tagline: "Every human contributes data to train AI", tags: ["Infrastructure", "AI"], badge: null },
+  //   { id: 3, name: "NEAR Intents", tagline: "A single way to move users, agents and services", tags: ["Infrastructure", "DEX"], badge: "NEW" },
+  // ]);
 
-  const trending = [
-    { id: 1, name: "Nostra", desc: "BNB Smart chain", pct: "2600.32%", users: "31.3k" },
-    { id: 2, name: "Nebula", desc: "Solana", pct: "1200.12%", users: "22.1k" },
-    { id: 3, name: "Orion", desc: "Ethereum", pct: "800.45%", users: "18.5k" },
-  ];
+  // const trending = [
+  //   { id: 1, name: "Nostra", desc: "BNB Smart chain", pct: "2600.32%", users: "31.3k" },
+  //   { id: 2, name: "Nebula", desc: "Solana", pct: "1200.12%", users: "22.1k" },
+  //   { id: 3, name: "Orion", desc: "Ethereum", pct: "800.45%", users: "18.5k" },
+  // ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-white to-purple-50 py-12">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen">
+      <div className="">
+        <div className="">
           <div>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900">Your Web3 Journey starts here</h1>
-            <p className="text-sm text-gray-600 mt-2">Discover dApps, add your own, and explore trending projects across chains.</p>
+            {/* <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900">Your Web3 Journey starts here</h1> */}
+            <p className="text-gray-600 text-8xl text-center mt-10">COMING SOON !!!</p>
           </div>
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <button className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
               + Add dApp
             </button>
-          </div>
+          </div> */}
         </div>
 
-        <SearchBar placeholder="Ask me anything" centerText="Powered by NEAR AI" />
+        {/* <SearchBar placeholder="Ask me anything" centerText="Powered by NEAR AI" /> */}
 
         {/* Featured dApps */}
-        <section className="mt-8">
+        {/* <section className="mt-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Featured dApps</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {dapps.map((app) => (
@@ -57,10 +57,10 @@ export default function Dapps() {
               </div>
             ))}
           </div>
-        </section>
+        </section> */}
 
         {/* Trending projects */}
-        <section className="mt-10">
+        {/* <section className="mt-10">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Trending projects</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {trending.map((t) => (
@@ -76,7 +76,7 @@ export default function Dapps() {
               </div>
             ))}
           </div>
-        </section>
+        </section> */}
       </div>
     </div>
   );

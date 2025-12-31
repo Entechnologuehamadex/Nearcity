@@ -5,8 +5,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import WalletPanel from "./WalletPanel";
+import ComingSoonPopover from "./ComingSoonPopover";
 import { useToast } from "../hooks/use-toast";
 import { useWallet } from "../context/WalletContext";
+import UserProfile from "./UserProfile";
+
+import MobileMenu from "./MobileMenu";
 
 export default function Header() {
   const router = useRouter();
@@ -14,6 +18,8 @@ export default function Header() {
   const { isConnected, walletName, balance, connect, disconnect, isLoading } = useWallet();
   const { toasts, addToast, removeToast } = useToast();
   const [showWalletPanel, setShowWalletPanel] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedProfileAccount, setSelectedProfileAccount] = useState<string | null>(null);
 
   useEffect(() => {
     function handleGlobalToast(e: Event) {
@@ -23,7 +29,17 @@ export default function Header() {
       }
     }
     window.addEventListener("nearcity-toast", handleGlobalToast as EventListener);
-    return () => window.removeEventListener("nearcity-toast", handleGlobalToast as EventListener);
+
+    // Open wallet panel when any part of the app requests it
+    function handleOpenWallet(_: Event) {
+      setShowWalletPanel(true);
+    }
+    window.addEventListener("nearcity-open-wallet", handleOpenWallet as EventListener);
+
+    return () => {
+      window.removeEventListener("nearcity-toast", handleGlobalToast as EventListener);
+      window.removeEventListener("nearcity-open-wallet", handleOpenWallet as EventListener);
+    };
   }, [addToast]);
 
   const navItems = [
@@ -33,6 +49,30 @@ export default function Header() {
     { label: "Web4 Page", route: "/web4" },
     { label: "Data", route: "/data" },
   ];
+
+  const disabledNavRoutes = new Set(["/dapp", "/web4", "/data"]);
+  const [comingAnchor, setComingAnchor] = useState<{ left: number; top: number; bottom: number; width: number } | null>(null);
+
+  useEffect(() => {
+    function handleShow(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.rect) {
+        setComingAnchor(detail.rect as any);
+      }
+    }
+
+    window.addEventListener("nearcity-show-coming-soon", handleShow as EventListener);
+
+    function handleClickOutside() {
+      setComingAnchor(null);
+    }
+    window.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      window.removeEventListener("nearcity-show-coming-soon", handleShow as EventListener);
+      window.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const [activeRoute, setActiveRoute] = useState<string>("");
 
@@ -62,7 +102,14 @@ export default function Header() {
                 <button
                   key={item.route}
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    // For certain routes we show "Coming soon" instead of navigating
+                    if (disabledNavRoutes.has(item.route)) {
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setComingAnchor({ left: rect.left, top: rect.top, bottom: rect.bottom, width: rect.width });
+                      return;
+                    }
+
                     setActiveRoute(item.route);
                     router.push(item.route);
                   }}
@@ -89,6 +136,8 @@ export default function Header() {
                     try {
                       await connect();
                       addToast("Wallet connected successfully", "success");
+                      // Open the wallet panel after successful connect so behavior matches other connect buttons
+                      window.dispatchEvent(new CustomEvent('nearcity-open-wallet'));
                     } catch (error) {
                       addToast("Failed to connect wallet", "error");
                     }
@@ -101,7 +150,7 @@ export default function Header() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push("/menu")}
+                  onClick={() => setMobileMenuOpen(true)}
                   className="md:hidden inline-flex items-center gap-2 px-3 py-2 rounded-full border"
                 >
                   <Menu className="h-4 w-4" />
@@ -141,8 +190,11 @@ export default function Header() {
                   {showWalletPanel && (
                     <WalletPanel
                       walletName={walletName ?? ""}
-                      balanceNear={balance ? `${parseFloat(balance).toFixed(2)} NEAR` : "0.00 NEAR"}
                       onClose={() => setShowWalletPanel(false)}
+                      onViewProfile={(accountId) => {
+                        setSelectedProfileAccount(accountId);
+                        setShowWalletPanel(false);
+                      }}
                       onDisconnect={async () => {
                         try {
                           await disconnect();
@@ -163,6 +215,7 @@ export default function Header() {
                 {/* Mobile wallet display */}
                 <button
                   type="button"
+                  onClick={() => setShowWalletPanel(true)}
                   className="md:hidden inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm"
                 >
                   {walletName ? walletName.split(".")[0] : ''}
@@ -172,6 +225,23 @@ export default function Header() {
           </div>
         </div>
       </header>
+
+      {mobileMenuOpen && <MobileMenu onClose={() => setMobileMenuOpen(false)} />}
+
+      {selectedProfileAccount && (
+        <UserProfile
+          accountId={selectedProfileAccount}
+          onClose={() => setSelectedProfileAccount(null)}
+        />
+      )}
+
+      {comingAnchor && (
+        <ComingSoonPopover
+          anchorRect={comingAnchor}
+          message={"Coming soon!!!"}
+          onClose={() => setComingAnchor(null)}
+        />
+      )}
 
       {/* Toast Container */}
       <div className="fixed top-4 right-4 z-50 space-y-2">

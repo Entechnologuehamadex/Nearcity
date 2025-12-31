@@ -4,8 +4,9 @@ import { setupWalletSelector } from "@near-wallet-selector/core";
 import { setupModal } from "@near-wallet-selector/modal-ui";
 import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
 import { setupHotWallet } from "@near-wallet-selector/hot-wallet";
-import { setupLedger } from "@near-wallet-selector/ledger"; 
-import type { WalletSelector, AccountState } from "@near-wallet-selector/core";
+import { setupLedger } from "@near-wallet-selector/ledger";
+import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
+import type { WalletSelector, AccountState, NetworkId } from "@near-wallet-selector/core";
 import type { WalletSelectorModal } from "@near-wallet-selector/modal-ui";
 
 export interface WalletSelectorSetup {
@@ -21,11 +22,12 @@ export async function initWalletSelector(): Promise<WalletSelectorSetup> {
   }
 
   const selector = await setupWalletSelector({
-    network: process.env.NEXT_PUBLIC_NEAR_NETWORK || "testnet",
+    network: (process.env.NEXT_PUBLIC_NEAR_NETWORK as NetworkId) || "testnet",
     modules: [
       setupMyNearWallet(),
       setupHotWallet(),
       setupLedger(),
+      setupMeteorWallet(),
     ],
   });
 

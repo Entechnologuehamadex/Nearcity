@@ -85,7 +85,7 @@ export default function Connected() {
         </div>
 
         {/* Food Grid */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {foodItems.map((item) => (
             <div key={item.id} className="bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition transform hover:scale-105">
               <div className="relative h-40 bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-6xl">
@@ -140,7 +140,7 @@ export default function Connected() {
                 {newsItems
                   .filter((item) => item.section === "DeFi")
                   .map((item) => (
-                    <div key={item.id} className="flex-shrink-0 w-80 bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition">
+                    <div key={item.id} className="flex-shrink-0 w-72 sm:w-80 bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition">
                       {/* Image Section */}
                       <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-8xl">
                         {item.image}
@@ -185,7 +185,7 @@ export default function Connected() {
                 {newsItems
                   .filter((item) => item.section === "Food")
                   .map((item) => (
-                    <div key={item.id} className="flex-shrink-0 w-80 bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition">
+                    <div key={item.id} className="flex-shrink-0 w-72 sm:w-80 bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition">
                       {/* Image Section */}
                       <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-8xl">
                         {item.image}
@@ -230,7 +230,7 @@ export default function Connected() {
                 {newsItems
                   .filter((item) => item.section === "Trading")
                   .map((item) => (
-                    <div key={item.id} className="flex-shrink-0 w-80 bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition">
+                    <div key={item.id} className="flex-shrink-0 w-72 sm:w-80 bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition">
                       {/* Image Section */}
                       <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-8xl">
                         {item.image}

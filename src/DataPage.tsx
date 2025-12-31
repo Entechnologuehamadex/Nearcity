@@ -17,7 +17,7 @@ export default function DataPage() {
         <p className="text-center text-sm text-gray-500 mt-4">Take control of your data assets and earn from sharing your data with applications in the Near ecosystem</p>
 
         <div className="mt-10 rounded-xl bg-gray-100 p-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {/* Data Assets Card */}
             <DataCard title="Data Assets" buttonText="Update Permissions">
               <ul className="space-y-4 text-gray-700">

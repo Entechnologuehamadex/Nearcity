@@ -47,13 +47,20 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       if (data.result && data.result.amount) {
         // Convert from yoctoNEAR to NEAR (1 NEAR = 10^24 yoctoNEAR)
-        const nearAmount = (BigInt(data.result.amount) / BigInt(10 ** 24)).toString();
-        const remainder = (BigInt(data.result.amount) % BigInt(10 ** 24)).toString();
-        const formattedBalance = `${nearAmount}.${remainder.padStart(24, "0").slice(0, 2)}`;
-        setBalance(formattedBalance);
+        const yocto = BigInt(data.result.amount);
+        const NEAR = BigInt(10) ** BigInt(24);
+        const whole = yocto / NEAR;
+        const remainder = yocto % NEAR;
+        // two decimal places
+        const cents = (remainder * BigInt(100)) / NEAR;
+        const formatted = `${whole.toString()}.${cents.toString().padStart(2, "0")}`;
+        setBalance(formatted);
+      } else {
+        setBalance("0.00");
       }
     } catch (error) {
       console.error("Failed to fetch balance:", error);
+      setBalance("0.00");
     }
   }, []);
 
@@ -113,9 +120,18 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const { selector, modal } = await getWalletSelector();
       
       // Show wallet selector modal
-      modal.show();
-      
-      // The subscription in useEffect will handle the state update when user connects
+      await modal.show();
+
+      // Try to read current account after the modal closes in case user just connected
+      const account = getAccountState(selector);
+      if (account) {
+        setAccountId(account.accountId);
+        setWalletName(account.accountId);
+        setIsConnected(true);
+        await fetchBalance(account.accountId);
+      }
+
+      // The subscription in useEffect will also handle subsequent account changes
     } catch (error) {
       console.error("Failed to connect wallet:", error);
       throw error;
