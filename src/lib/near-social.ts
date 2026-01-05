@@ -61,6 +61,7 @@ export interface NearSocialProfile {
 
 /**
  * Create a Social instance for high-level operations
+ * Note: This is for read-only operations. For writes, use wallet.signAndSendTransaction()
  */
 function createSocialInstance(): Social {
   return new Social();
@@ -68,6 +69,7 @@ function createSocialInstance(): Social {
 
 /**
  * Create a Graph instance for low-level operations
+ * Note: This is for read-only operations. For writes, use wallet.signAndSendTransaction()
  */
 function createGraphInstance(): Graph {
   return new Graph();
@@ -350,13 +352,37 @@ export async function postToNearSocial(accountId: string, text: string, imageUrl
 /**
  * Follow an account using Social API
  */
-export async function followAccount(signerId: string, targetAccountId: string, walletSelector?: any): Promise<boolean> {
+export async function followAccount(signerId: string, targetAccountId: string, walletSelectorOrSetup?: any): Promise<boolean> {
   try {
     console.log('[followAccount] Following:', { signerId, targetAccountId });
 
-    if (!walletSelector) throw new Error("Wallet selector is required to follow");
-    const wallet = await walletSelector.wallet();
-    if (!wallet) throw new Error("Wallet not connected");
+    if (!walletSelectorOrSetup) throw new Error("Wallet selector is required to follow");
+    
+    // Handle both WalletSelector object and WalletSelectorSetup object
+    let selector = walletSelectorOrSetup;
+    let modal = undefined;
+    if (walletSelectorOrSetup.selector) {
+      // It's a WalletSelectorSetup object
+      selector = walletSelectorOrSetup.selector;
+      modal = walletSelectorOrSetup.modal;
+    }
+    
+    let wallet = await selector.wallet();
+    
+    // If no wallet connected, show modal to let user select
+    if (!wallet) {
+      console.log('[followAccount] No wallet connected, showing modal');
+      if (modal) {
+        await modal.show();
+      }
+      wallet = await selector.wallet();
+      if (!wallet) throw new Error("Wallet not connected - user cancelled");
+    }
+
+    // Check if wallet has a signAndSendTransaction method
+    if (!wallet.signAndSendTransaction) {
+      throw new Error("Wallet does not support signing transactions. Please update your wallet.");
+    }
 
     const data: any = {
       [signerId]: {
@@ -403,13 +429,37 @@ export async function followAccount(signerId: string, targetAccountId: string, w
 /**
  * Unfollow an account using Social API
  */
-export async function unfollowAccount(signerId: string, targetAccountId: string, walletSelector?: any): Promise<boolean> {
+export async function unfollowAccount(signerId: string, targetAccountId: string, walletSelectorOrSetup?: any): Promise<boolean> {
   try {
     console.log('[unfollowAccount] Unfollowing:', { signerId, targetAccountId });
 
-    if (!walletSelector) throw new Error("Wallet selector is required to unfollow");
-    const wallet = await walletSelector.wallet();
-    if (!wallet) throw new Error("Wallet not connected");
+    if (!walletSelectorOrSetup) throw new Error("Wallet selector is required to unfollow");
+    
+    // Handle both WalletSelector object and WalletSelectorSetup object
+    let selector = walletSelectorOrSetup;
+    let modal = undefined;
+    if (walletSelectorOrSetup.selector) {
+      // It's a WalletSelectorSetup object
+      selector = walletSelectorOrSetup.selector;
+      modal = walletSelectorOrSetup.modal;
+    }
+    
+    let wallet = await selector.wallet();
+    
+    // If no wallet connected, show modal to let user select
+    if (!wallet) {
+      console.log('[unfollowAccount] No wallet connected, showing modal');
+      if (modal) {
+        await modal.show();
+      }
+      wallet = await selector.wallet();
+      if (!wallet) throw new Error("Wallet not connected - user cancelled");
+    }
+
+    // Check if wallet has a signAndSendTransaction method
+    if (!wallet.signAndSendTransaction) {
+      throw new Error("Wallet does not support signing transactions. Please update your wallet.");
+    }
 
     const data: any = {
       [signerId]: {
@@ -484,20 +534,42 @@ export async function likeItem(signerId: string, item: { type: string; path: str
       if (!wallet) throw new Error("Wallet not connected - user cancelled");
     }
 
-    // Use high-level Social.like() method (matches near.social implementation)
-    // This method properly handles the transaction construction
-    const social = createSocialInstance();
-    
-    // Social.like() takes the signerId implicitly from the wallet connection
-    // The item format: { type: 'social', path: 'accountId/post/main', blockHeight: number }
-    const tx = await social.like(signerId, {
-      type: item.type || 'social',
-      path: item.path,
-      blockHeight: item.blockHeight || 0,
+    // Check if wallet has a signAndSendTransaction method
+    if (!wallet.signAndSendTransaction) {
+      throw new Error("Wallet does not support signing transactions. Please update your wallet.");
+    }
+
+    // Build the like data structure for NEAR Social contract
+    const data: any = {
+      [signerId]: {
+        index: {
+          like: JSON.stringify({
+            key: {
+              type: item.type || "social",
+              path: item.path,
+              blockHeight: item.blockHeight || 0,
+            },
+            value: {
+              type: "like",
+            },
+          }),
+        },
+      },
+    };
+
+    // Sign and send transaction via wallet
+    const result = await wallet.signAndSendTransaction({
+      receiverId: NEAR_SOCIAL_CONTRACT,
+      actions: [{
+        type: "FunctionCall",
+        params: {
+          methodName: "set",
+          args: stringToBytes(JSON.stringify({ data })),
+          gas: "200000000000000",
+          deposit: depositAmount || "0",
+        },
+      }],
     });
-    
-    // Send the transaction
-    const result = await tx.send();
 
     console.log('[likeItem] Like successful:', result);
     return true;
@@ -513,7 +585,6 @@ export async function likeItem(signerId: string, item: { type: string; path: str
 
 /**
  * Repost an item using Social API
- * Uses the high-level method matching near.social pattern
  */
 export async function repostItem(signerId: string, item: { type: string; path: string; blockHeight?: number }, walletSelectorOrSetup?: any, depositAmount: string = "0"): Promise<boolean> {
   try {
@@ -541,17 +612,22 @@ export async function repostItem(signerId: string, item: { type: string; path: s
       wallet = await selector.wallet();
       if (!wallet) throw new Error("Wallet not connected - user cancelled");
     }
-    
-    // Use Graph API to create repost (similar to like but with repost action)
-    const graph = createGraphInstance();
-    
+
+    // Check if wallet has a signAndSendTransaction method
+    if (!wallet.signAndSendTransaction) {
+      throw new Error("Wallet does not support signing transactions. Please update your wallet.");
+    }
+
     // Create repost data structure matching near.social format
-    // Reposts are stored in index/repost path
     const data: any = {
       [signerId]: {
         index: {
           repost: JSON.stringify({
-            key: item,
+            key: {
+              type: item.type || "social",
+              path: item.path,
+              blockHeight: item.blockHeight || 0,
+            },
             value: {
               type: "repost",
             },
@@ -560,14 +636,19 @@ export async function repostItem(signerId: string, item: { type: string; path: s
       },
     };
 
-    // Use Graph.set() for reposts
-    const tx = await graph.set({
-      signerId,
-      data,
+    // Sign and send transaction via wallet
+    const result = await wallet.signAndSendTransaction({
+      receiverId: NEAR_SOCIAL_CONTRACT,
+      actions: [{
+        type: "FunctionCall",
+        params: {
+          methodName: "set",
+          args: stringToBytes(JSON.stringify({ data })),
+          gas: "200000000000000",
+          deposit: depositAmount || "0",
+        },
+      }],
     });
-    
-    // Send the transaction
-    const result = await tx.send();
 
     console.log('[repostItem] Repost successful:', result);
     return true;
@@ -949,6 +1030,11 @@ export async function pokeUser(signerId: string, targetAccountId: string, wallet
       }
       wallet = await selector.wallet();
       if (!wallet) throw new Error("Wallet not connected - user cancelled");
+    }
+
+    // Check if wallet has a signAndSendTransaction method
+    if (!wallet.signAndSendTransaction) {
+      throw new Error("Wallet does not support signing transactions. Please update your wallet.");
     }
 
     // Convert NEAR to yoctoNEAR

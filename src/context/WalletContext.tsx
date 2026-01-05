@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { getWalletSelector, getAccountState } from "../lib/near-wallet";
+import { getWalletSelector, getAccountState, getAccountBalance } from "../lib/near-wallet";
 import type { AccountState } from "@near-wallet-selector/core";
 
 type WalletState = {
@@ -23,41 +23,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [balance, setBalance] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch account balance
+  // Fetch account balance - get network from env or default to testnet
   const fetchBalance = useCallback(async (accountId: string) => {
     try {
-      const response = await fetch(
-        process.env.NEXT_PUBLIC_NEAR_RPC_URL || "https://rpc.testnet.near.org",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: "dontcare",
-            method: "query",
-            params: {
-              request_type: "view_account",
-              finality: "final",
-              account_id: accountId,
-            },
-          }),
-        }
-      );
-
-      const data = await response.json();
-      if (data.result && data.result.amount) {
-        // Convert from yoctoNEAR to NEAR (1 NEAR = 10^24 yoctoNEAR)
-        const yocto = BigInt(data.result.amount);
-        const NEAR = BigInt(10) ** BigInt(24);
-        const whole = yocto / NEAR;
-        const remainder = yocto % NEAR;
-        // two decimal places
-        const cents = (remainder * BigInt(100)) / NEAR;
-        const formatted = `${whole.toString()}.${cents.toString().padStart(2, "0")}`;
-        setBalance(formatted);
-      } else {
-        setBalance("0.00");
-      }
+      const network = (process.env.NEXT_PUBLIC_NEAR_NETWORK as "testnet" | "mainnet") || "testnet";
+      const balanceInNear = await getAccountBalance(accountId, network);
+      setBalance(balanceInNear);
+      console.log(`[WalletContext] Fetched balance for ${accountId}: ${balanceInNear} NEAR`);
     } catch (error) {
       console.error("Failed to fetch balance:", error);
       setBalance("0.00");
@@ -67,6 +39,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // Initialize wallet selector and check for existing connection
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
+    let balanceRefreshInterval: NodeJS.Timeout | null = null;
 
     async function init() {
       try {
@@ -107,9 +80,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     init();
 
+    // Cleanup
     return () => {
       if (subscription) {
         subscription.unsubscribe();
+      }
+      if (balanceRefreshInterval) {
+        clearInterval(balanceRefreshInterval);
       }
     };
   }, [fetchBalance]);

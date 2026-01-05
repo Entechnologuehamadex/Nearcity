@@ -1050,7 +1050,7 @@ export default function Social() {
         {/* Transaction Confirmation Modal */}
         {showConfirmModal && pendingTransaction && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-            <div className="absolute inset-0 bg-black opacity-50" onClick={() => !isConfirming && setShowConfirmModal(false)} />
+            <div className="absolute inset-0 bg-black opacity-50" onClick={() => !isConfirming && (setShowConfirmModal(false), setPendingTransaction(null))} />
           <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
             {/* Header */}
             <div className="bg-gradient-to-r from-teal-500 to-cyan-500 px-8 py-6">
@@ -1132,6 +1132,7 @@ export default function Social() {
                   onClick={() => {
                     setShowConfirmModal(false);
                     setSelectedDeposit("0");
+                    setPendingTransaction(null);
                   }}
                   disabled={isConfirming}
                   className="flex-1 px-4 py-3 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1142,11 +1143,16 @@ export default function Social() {
                   onClick={async () => {
                     setIsConfirming(true);
                     try {
-                      await pendingTransaction.onConfirm();
-                      setShowConfirmModal(false);
-                      setSelectedDeposit("0");
+                      if (pendingTransaction) {
+                        await pendingTransaction.onConfirm();
+                      }
+                    } catch (err) {
+                      console.error("Transaction confirmation error:", err);
                     } finally {
                       setIsConfirming(false);
+                      setShowConfirmModal(false);
+                      setSelectedDeposit("0");
+                      setPendingTransaction(null);
                     }
                   }}
                   disabled={isConfirming}
