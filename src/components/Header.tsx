@@ -93,11 +93,24 @@ export default function Header() {
 
   return (
     <>
-      <header className="w-full py-6">
-        <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
-          <button onClick={() => { setActiveRoute('/'); router.push('/'); }} className="text-teal-600 font-bold focus:outline-none">NEAR CITY</button>
-          <div className="flex items-center gap-6">
-            <nav className="hidden md:flex items-center gap-4 bg-emerald-400 rounded-full px-4 py-1 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full py-4 sm:py-6 bg-white shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-4">
+          {/* Left section - Logo and Mobile Menu */}
+          <div className="flex items-center gap-3 sm:gap-6 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm"
+              aria-label="Open menu"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <button onClick={() => { setActiveRoute('/'); router.push('/'); }} className="text-teal-600 font-bold focus:outline-none text-sm sm:text-base">NEAR CITY</button>
+          </div>
+
+          {/* Center section - Navbar (hidden on mobile) */}
+          <div className="hidden sm:flex items-center justify-center flex-1">
+            <nav className="flex items-center gap-4 bg-emerald-400 rounded-full px-4 py-1 shadow-sm">
               {navItems.map((item) => (
                 <button
                   key={item.route}
@@ -125,7 +138,8 @@ export default function Header() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Right section - Wallet/Connect */}
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             {!isConnected ? (
               <>
                 <button
@@ -143,36 +157,28 @@ export default function Header() {
                     }
                   }}
                   disabled={isLoading}
-                  className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="hidden sm:inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
-                  <Wallet className="h-4 w-4" />
-                  {isLoading ? "Connecting..." : "Connect Wallet"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(true)}
-                  className="md:hidden inline-flex items-center gap-2 px-3 py-2 rounded-full border"
-                >
-                  <Menu className="h-4 w-4" />
-                  Menu
+                  <Wallet className="h-4 w-4 flex-shrink-0" />
+                  <span className="hidden md:inline">{isLoading ? "Connecting..." : "Connect"}</span>
                 </button>
               </>
             ) : (
               <>
                 {/* Wallet Display with Dropdown */}
-                <div className="hidden md:block relative">
+                <div className="hidden sm:block relative">
                   <button
                     type="button"
                     onClick={() => setShowWalletPanel(!showWalletPanel)}
                     className="flex items-center rounded-full overflow-hidden hover:shadow-lg transition"
                   >
                     {/* Left section with wallet name */}
-                    <div className="flex items-center gap-3 px-4 py-2 bg-white border-r border-gray-200">
+                    <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-white border-r border-gray-200">
                       <div className="w-1 h-6 bg-teal-600 rounded"></div>
-                      <span className="text-sm text-gray-600">{walletName}</span>
+                      <span className="text-xs sm:text-sm text-gray-600 max-w-[100px] sm:max-w-none truncate sm:truncate-none">{walletName}</span>
                     </div>
                     {/* Right section with balance and NEAR logo */}
-                    <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500">
+                    <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500">
                       <span className="text-sm font-semibold text-gray-700">
                         {balance ? parseFloat(balance).toFixed(2) : "0.00"}
                       </span>
@@ -208,17 +214,16 @@ export default function Header() {
                       }}
                     />
                   )}
-
-
                 </div>
 
                 {/* Mobile wallet display */}
                 <button
                   type="button"
                   onClick={() => setShowWalletPanel(true)}
-                  className="md:hidden inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm"
+                  className="sm:hidden inline-flex items-center gap-2 px-3 py-2 rounded-full border text-xs"
+                  aria-label="Wallet"
                 >
-                  {walletName ? walletName.split(".")[0] : ''}
+                  <Wallet className="h-4 w-4" />
                 </button>
               </>
             )}

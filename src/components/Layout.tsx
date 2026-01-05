@@ -12,9 +12,9 @@ interface LayoutProps {
 
 export default function Layout({ children, platformLinks, resourceLinks, connectLinks }: LayoutProps) {
   return (
-    <div className="min-h-screen font-sans bg-white">
+    <div className="min-h-screen font-sans bg-white flex flex-col">
       <Header />
-      <main className="">{children}</main>
+      <main className="pt-20 sm:pt-24 flex-1">{children}</main>
       <Footer platformLinks={platformLinks} resourceLinks={resourceLinks} connectLinks={connectLinks} />
     </div>
   );

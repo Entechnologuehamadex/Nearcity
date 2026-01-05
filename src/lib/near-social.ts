@@ -7,6 +7,22 @@
 
 import { Graph, Social } from "near-social-js";
 
+// Utility to convert string to bytes for wallet transactions
+function stringToBytes(str: string): Uint8Array {
+  return new TextEncoder().encode(str);
+}
+
+// Utility to convert object to base64 string for args
+function objectToBase64Args(obj: any): string {
+  const jsonStr = JSON.stringify(obj);
+  const bytes = new TextEncoder().encode(jsonStr);
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+}
+
 const NEAR_SOCIAL_CONTRACT = "social.near";
 // Mainnet RPC for social data fetching
 const NEAR_INDEXER_URL = process.env.NEXT_PUBLIC_NEAR_SOCIAL_API || "https://rpc.mainnet.near.org";
@@ -311,13 +327,12 @@ export async function postToNearSocial(accountId: string, text: string, imageUrl
 
     // Sign and send transaction
     const result = await wallet.signAndSendTransaction({
-      signerId: accountId,
       receiverId: NEAR_SOCIAL_CONTRACT,
       actions: [{
         type: "FunctionCall",
         params: {
           methodName: "set",
-          args: JSON.stringify({ data }),
+          args: stringToBytes(JSON.stringify({ data })),
           gas: "200000000000000",
           deposit: "0",
         },
@@ -363,14 +378,14 @@ export async function followAccount(signerId: string, targetAccountId: string, w
     };
 
     // Sign and send transaction
+    const argsBuffer = stringToBytes(JSON.stringify({ data }));
     const result = await wallet.signAndSendTransaction({
-      signerId: signerId,
       receiverId: NEAR_SOCIAL_CONTRACT,
       actions: [{
         type: "FunctionCall",
         params: {
           methodName: "set",
-          args: JSON.stringify({ data }),
+          args: argsBuffer,
           gas: "100000000000000",
           deposit: "0",
         },
@@ -416,14 +431,14 @@ export async function unfollowAccount(signerId: string, targetAccountId: string,
     };
 
     // Sign and send transaction
+    const argsBuffer = stringToBytes(JSON.stringify({ data }));
     const result = await wallet.signAndSendTransaction({
-      signerId: signerId,
       receiverId: NEAR_SOCIAL_CONTRACT,
       actions: [{
         type: "FunctionCall",
         params: {
           methodName: "set",
-          args: JSON.stringify({ data }),
+          args: argsBuffer,
           gas: "100000000000000",
           deposit: "0",
         },
@@ -440,46 +455,51 @@ export async function unfollowAccount(signerId: string, targetAccountId: string,
 
 /**
  * Like an item using Social API
- * Proper format based on near-social-js SDK
+ * Uses the high-level Social.like() method which handles transaction signing properly
  */
-export async function likeItem(signerId: string, item: { type: string; path: string; blockHeight?: number }, walletSelector?: any): Promise<boolean> {
+export async function likeItem(signerId: string, item: { type: string; path: string; blockHeight?: number }, walletSelectorOrSetup?: any, depositAmount: string = "0"): Promise<boolean> {
   try {
-    console.log('[likeItem] Liking:', { signerId, item });
+    console.log('[likeItem] Liking item:', { signerId, item, depositAmount });
 
-    if (!walletSelector) throw new Error("Wallet selector is required to like");
-    const wallet = await walletSelector.wallet();
-    if (!wallet) throw new Error("Wallet not connected");
+    if (!walletSelectorOrSetup) throw new Error("Wallet selector is required to like");
     
-    // Correct data format matching near-social-js SDK
-    const data: any = {
-      [signerId]: {
-        index: {
-          like: JSON.stringify({
-            key: item,  // Full item object, not just path
-            value: {
-              type: "like",
-            },
-          }),
-        },
-      },
-    };
+    // Handle both WalletSelector object and WalletSelectorSetup object
+    let selector = walletSelectorOrSetup;
+    let modal = undefined;
+    if (walletSelectorOrSetup.selector) {
+      // It's a WalletSelectorSetup object
+      selector = walletSelectorOrSetup.selector;
+      modal = walletSelectorOrSetup.modal;
+    }
+    
+    let wallet = await selector.wallet();
+    
+    // If no wallet connected, show modal to let user select
+    if (!wallet) {
+      console.log('[likeItem] No wallet connected, showing modal');
+      if (modal) {
+        await modal.show();
+      }
+      wallet = await selector.wallet();
+      if (!wallet) throw new Error("Wallet not connected - user cancelled");
+    }
 
-    // Sign and send transaction
-    const result = await wallet.signAndSendTransaction({
-      signerId: signerId,
-      receiverId: NEAR_SOCIAL_CONTRACT,
-      actions: [{
-        type: "FunctionCall",
-        params: {
-          methodName: "set",
-          args: JSON.stringify({ data }),
-          gas: "100000000000000",  // 100 Tgas (100 trillion gas)
-          deposit: "0",
-        },
-      }],
+    // Use high-level Social.like() method (matches near.social implementation)
+    // This method properly handles the transaction construction
+    const social = createSocialInstance();
+    
+    // Social.like() takes the signerId implicitly from the wallet connection
+    // The item format: { type: 'social', path: 'accountId/post/main', blockHeight: number }
+    const tx = await social.like(signerId, {
+      type: item.type || 'social',
+      path: item.path,
+      blockHeight: item.blockHeight || 0,
     });
+    
+    // Send the transaction
+    const result = await tx.send();
 
-    console.log('[likeItem] Transaction successful:', result);
+    console.log('[likeItem] Like successful:', result);
     return true;
   } catch (error: any) {
     console.error("Error liking item:", error);
@@ -492,23 +512,46 @@ export async function likeItem(signerId: string, item: { type: string; path: str
 }
 
 /**
- * Repost an item using Graph API
- * Similar structure to like but with repost action
+ * Repost an item using Social API
+ * Uses the high-level method matching near.social pattern
  */
-export async function repostItem(signerId: string, item: { type: string; path: string; blockHeight?: number }, walletSelector?: any): Promise<boolean> {
+export async function repostItem(signerId: string, item: { type: string; path: string; blockHeight?: number }, walletSelectorOrSetup?: any, depositAmount: string = "0"): Promise<boolean> {
   try {
-    console.log('[repostItem] Reposting:', { signerId, item });
+    console.log('[repostItem] Reposting item:', { signerId, item, depositAmount });
 
-    if (!walletSelector) throw new Error("Wallet selector is required to repost");
-    const wallet = await walletSelector.wallet();
-    if (!wallet) throw new Error("Wallet not connected");
+    if (!walletSelectorOrSetup) throw new Error("Wallet selector is required to repost");
     
-    // Create repost data with proper structure
+    // Handle both WalletSelector object and WalletSelectorSetup object
+    let selector = walletSelectorOrSetup;
+    let modal = undefined;
+    if (walletSelectorOrSetup.selector) {
+      // It's a WalletSelectorSetup object
+      selector = walletSelectorOrSetup.selector;
+      modal = walletSelectorOrSetup.modal;
+    }
+    
+    let wallet = await selector.wallet();
+    
+    // If no wallet connected, show modal to let user select
+    if (!wallet) {
+      console.log('[repostItem] No wallet connected, showing modal');
+      if (modal) {
+        await modal.show();
+      }
+      wallet = await selector.wallet();
+      if (!wallet) throw new Error("Wallet not connected - user cancelled");
+    }
+    
+    // Use Graph API to create repost (similar to like but with repost action)
+    const graph = createGraphInstance();
+    
+    // Create repost data structure matching near.social format
+    // Reposts are stored in index/repost path
     const data: any = {
       [signerId]: {
         index: {
           repost: JSON.stringify({
-            key: item,  // Full item object
+            key: item,
             value: {
               type: "repost",
             },
@@ -517,21 +560,16 @@ export async function repostItem(signerId: string, item: { type: string; path: s
       },
     };
 
-    const result = await wallet.signAndSendTransaction({
-      signerId: signerId,
-      receiverId: NEAR_SOCIAL_CONTRACT,
-      actions: [{
-        type: "FunctionCall",
-        params: {
-          methodName: "set",
-          args: JSON.stringify({ data }),
-          gas: "100000000000000",  // 100 Tgas
-          deposit: "0",
-        },
-      }],
+    // Use Graph.set() for reposts
+    const tx = await graph.set({
+      signerId,
+      data,
     });
+    
+    // Send the transaction
+    const result = await tx.send();
 
-    console.log('[repostItem] Transaction successful:', result);
+    console.log('[repostItem] Repost successful:', result);
     return true;
   } catch (error: any) {
     console.error("Error reposting item:", error);
@@ -545,21 +583,25 @@ export async function repostItem(signerId: string, item: { type: string; path: s
 
 /**
  * Get likes for a specific item using Social API
+ * Uses the high-level Social.getLikes() method (matches near.social)
  */
 export async function getLikesForItem(item: { type: string; path: string; blockHeight?: number }): Promise<any[]> {
   try {
     console.log('[getLikesForItem] Fetching likes for item:', item);
     const social = createSocialInstance();
     
-    // Use Social API to get likes
+    // Use Social.getLikes() - returns index entries of who liked the item
     const likes = await social.getLikes({
-      type: item.type,
+      type: item.type || 'social',
       path: item.path,
-      blockHeight: item.blockHeight ?? 0,
+      blockHeight: item.blockHeight || 0,
     });
     
     console.log('[getLikesForItem] Likes fetched:', likes);
-    return Array.isArray(likes) ? likes : Object.keys(likes || {});
+    
+    // likes is an array of index entries with accountId and value
+    // Format: [{ accountId: string, value: {...} }, ...]
+    return Array.isArray(likes) ? likes : [];
   } catch (error) {
     console.error('[getLikesForItem] Error fetching likes:', error);
     return [];
@@ -882,13 +924,35 @@ export async function getTrendingPosts(limit: number = 10): Promise<NearSocialPo
  * Poke a user - send a friendly notification/interaction
  * Creates a poke action in the social graph
  */
-export async function pokeUser(signerId: string, targetAccountId: string, walletSelector?: any): Promise<boolean> {
+export async function pokeUser(signerId: string, targetAccountId: string, walletSelectorOrSetup?: any, depositAmount: string = "0"): Promise<boolean> {
   try {
-    console.log('[pokeUser] Poking user:', { signerId, targetAccountId });
+    console.log('[pokeUser] Poking user:', { signerId, targetAccountId, depositAmount });
 
-    if (!walletSelector) throw new Error("Wallet selector is required to poke");
-    const wallet = await walletSelector.wallet();
-    if (!wallet) throw new Error("Wallet not connected");
+    if (!walletSelectorOrSetup) throw new Error("Wallet selector is required to poke");
+    
+    // Handle both WalletSelector object and WalletSelectorSetup object
+    let selector = walletSelectorOrSetup;
+    let modal = undefined;
+    if (walletSelectorOrSetup.selector) {
+      // It's a WalletSelectorSetup object
+      selector = walletSelectorOrSetup.selector;
+      modal = walletSelectorOrSetup.modal;
+    }
+    
+    let wallet = await selector.wallet();
+    
+    // If no wallet connected, show modal to let user select
+    if (!wallet) {
+      console.log('[pokeUser] No wallet connected, showing modal');
+      if (modal) {
+        await modal.show();
+      }
+      wallet = await selector.wallet();
+      if (!wallet) throw new Error("Wallet not connected - user cancelled");
+    }
+
+    // Convert NEAR to yoctoNEAR
+    const depositInYocto = parseFloat(depositAmount) === 0 ? "0" : String(BigInt(Math.floor(parseFloat(depositAmount) * 1e24)));
 
     // Create poke data - store in user's notifications
     const data: any = {
@@ -906,16 +970,16 @@ export async function pokeUser(signerId: string, targetAccountId: string, wallet
       },
     };
 
+    const argsBuffer = stringToBytes(JSON.stringify({ data }));
     const result = await wallet.signAndSendTransaction({
-      signerId: signerId,
       receiverId: NEAR_SOCIAL_CONTRACT,
       actions: [{
         type: "FunctionCall",
         params: {
           methodName: "set",
-          args: JSON.stringify({ data }),
+          args: argsBuffer,
           gas: "100000000000000",  // 100 Tgas
-          deposit: "0",
+          deposit: depositInYocto,
         },
       }],
     });

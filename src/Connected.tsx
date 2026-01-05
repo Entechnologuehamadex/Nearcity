@@ -42,24 +42,24 @@ export default function Connected() {
   ];
 
   return (
-    <div className="min-h-screen py-12 bg-gradient-to-br from-white via-white to-purple-50">
-      <div className="mx-auto max-w-6xl px-6">
+    <div className="min-h-screen py-8 sm:py-12 bg-gradient-to-br from-white via-white to-purple-50">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">Control Your Digital</h1>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">Experience With Near City</h1>
-          <p className="mt-3 text-gray-600 text-sm">The complete Web4 ecosystem on NEAR Protocol with integrated AI. Connect your wallet to start exploring, building, and earning.</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900">Control Your Digital</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900">Experience With Near City</h1>
+          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-600">The complete Web4 ecosystem on NEAR Protocol with integrated AI. Connect your wallet to start exploring, building, and earning.</p>
         </div>
 
         {/* Search Bar */}
         <SearchBar placeholder="Food near me" centerText="Powered by NEAR AI" />
 
         {/* Categories */}
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <div className="mt-4 sm:mt-6 flex flex-wrap justify-center gap-2 sm:gap-3">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${selectedCategory === cat ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${selectedCategory === cat ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
             >
               {cat}
             </button>
@@ -67,12 +67,12 @@ export default function Connected() {
         </div>
 
         {/* Filters */}
-        <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <div className="mt-3 sm:mt-4 flex flex-wrap justify-center gap-1.5 sm:gap-2">
           {filters.map((filter) => (
             <button
               key={filter}
               onClick={() => setSelectedFilters((s) => s.includes(filter) ? s.filter((f) => f !== filter) : [...s, filter])}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${selectedFilters.includes(filter) ? "bg-gray-800 text-white" : "border border-gray-300 text-gray-700 hover:border-gray-400"}`}
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium transition ${selectedFilters.includes(filter) ? "bg-gray-800 text-white" : "border border-gray-300 text-gray-700 hover:border-gray-400"}`}
             >
               {filter}
             </button>
@@ -80,34 +80,34 @@ export default function Connected() {
         </div>
 
         {/* Precision Location Notice */}
-        <div className="mt-4 text-center text-sm text-yellow-700 bg-yellow-50 rounded-lg py-2 px-4 inline-block mx-auto block">
+        <div className="mt-3 sm:mt-4 text-center text-xs sm:text-sm text-yellow-700 bg-yellow-50 rounded-lg py-2 px-3 sm:px-4 inline-block mx-auto block">
           For precise location turn on 📍
         </div>
 
         {/* Food Grid */}
-        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="mt-8 sm:mt-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           {foodItems.map((item) => (
-            <div key={item.id} className="bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition transform hover:scale-105">
-              <div className="relative h-40 bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-6xl">
+            <div key={item.id} className="bg-gray-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition transform hover:scale-105">
+              <div className="relative h-32 sm:h-40 bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-4xl sm:text-6xl">
                 {item.image}
-                {item.liked && <div className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"><Heart className="h-4 w-4 fill-current" /></div>}
+                {item.liked && <div className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"><Heart className="h-3 sm:h-4 w-3 sm:w-4 fill-current" /></div>}
               </div>
 
-              <div className="p-4 text-white">
+              <div className="p-2 sm:p-4 text-white">
                 <span className="text-xs text-purple-300">{item.shop}</span>
-                <h3 className="text-sm font-semibold mt-1 line-clamp-2">{item.title}</h3>
+                <h3 className="text-xs sm:text-sm font-semibold mt-1 line-clamp-2">{item.title}</h3>
 
-                <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
+                <div className="mt-2 sm:mt-3 flex items-center justify-between text-xs text-gray-400">
                   <span>{item.available}</span>
                   <span>{item.time}</span>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between">
+                <div className="mt-2 sm:mt-3 flex items-center justify-between">
                   <button title="Like this item" className="flex items-center gap-1 text-gray-300 hover:text-white transition">
-                    <Heart className="h-4 w-4" />
+                    <Heart className="h-3 sm:h-4 w-3 sm:w-4" />
                   </button>
                   <button title="Share this item" className="flex items-center gap-1 text-gray-300 hover:text-white transition">
-                    <Share2 className="h-4 w-4" />
+                    <Share2 className="h-3 sm:h-4 w-3 sm:w-4" />
                   </button>
                 </div>
               </div>
@@ -116,15 +116,15 @@ export default function Connected() {
         </div>
 
         {/* News & Recommendation Section */}
-        <div className="mt-16">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">News & Recommendation</h2>
-            <div className="flex gap-2 flex-wrap justify-end">
+        <div className="mt-12 sm:mt-16">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-8 mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">News & Recommendation</h2>
+            <div className="flex gap-1.5 sm:gap-2 flex-wrap justify-start sm:justify-end">
               {newsCategories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${selectedCategory === cat ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                  className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${selectedCategory === cat ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                 >
                   {cat}
                 </button>
@@ -134,27 +134,27 @@ export default function Connected() {
 
           {/* DeFi Section */}
           <div className="mb-12">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">DeFi</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">DeFi</h3>
             <div className="overflow-x-auto scrollbar-hide">
-              <div className="flex gap-6 pb-4">
+              <div className="flex gap-3 sm:gap-6 pb-4">
                 {newsItems
                   .filter((item) => item.section === "DeFi")
                   .map((item) => (
-                    <div key={item.id} className="flex-shrink-0 w-72 sm:w-80 bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition">
+                    <div key={item.id} className="flex-shrink-0 w-56 sm:w-72 md:w-80 bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition">
                       {/* Image Section */}
-                      <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-8xl">
+                      <div className="relative h-40 sm:h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-5xl sm:text-8xl">
                         {item.image}
                         {item.badge && (
-                          <div className="absolute bottom-3 left-3 bg-red-500 text-white rounded-full w-10 h-10 flex items-center justify-center text-xs font-bold">
+                          <div className="absolute bottom-3 left-3 bg-red-500 text-white rounded-full w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center text-xs font-bold">
                             {item.badge}
                           </div>
                         )}
                       </div>
 
                       {/* Content Section */}
-                      <div className="p-4">
+                      <div className="p-3 sm:p-4">
                         <span className="text-xs text-purple-600 font-medium">{item.category}</span>
-                        <h3 className="text-sm font-semibold text-gray-900 mt-2 line-clamp-2">{item.title}</h3>
+                        <h3 className="text-xs sm:text-sm font-semibold text-gray-900 mt-2 line-clamp-2">{item.title}</h3>
 
                         {item.type === "available" && (
                           <p className="text-xs text-gray-600 mt-2">Available</p>
