@@ -22,7 +22,7 @@ export async function initWalletSelector(): Promise<WalletSelectorSetup> {
   }
 
   const selector = await setupWalletSelector({
-    network: (process.env.NEXT_PUBLIC_NEAR_NETWORK as NetworkId) || "testnet",
+    network: (process.env.NEXT_PUBLIC_NEAR_NETWORK as NetworkId) || "mainnet",
     modules: [
       setupMyNearWallet(),
       setupHotWallet(),
@@ -32,7 +32,7 @@ export async function initWalletSelector(): Promise<WalletSelectorSetup> {
   });
 
   const modal = setupModal(selector, {
-    contractId: process.env.NEXT_PUBLIC_NEAR_CONTRACT_ID || "app.nearcity.testnet",
+    contractId: process.env.NEXT_PUBLIC_NEAR_CONTRACT_ID || "social.near",
   });
 
   walletSelector = { selector, modal };
@@ -54,10 +54,10 @@ export function getAccountState(selector: WalletSelector): AccountState | null {
 /**
  * Fetch account balance from NEAR RPC
  * @param accountId - The account ID to fetch balance for
- * @param network - The network to use (testnet or mainnet)
+ * @param network - The network to use (testnet or mainnet), defaults to mainnet
  * @returns Balance in NEAR (as a string with 2 decimal places)
  */
-export async function getAccountBalance(accountId: string, network: NetworkId = "testnet"): Promise<string> {
+export async function getAccountBalance(accountId: string, network: NetworkId = "mainnet"): Promise<string> {
   try {
     const rpcUrl = network === "mainnet" 
       ? "https://rpc.mainnet.near.org"

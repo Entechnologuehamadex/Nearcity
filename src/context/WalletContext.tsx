@@ -23,10 +23,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [balance, setBalance] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch account balance - get network from env or default to testnet
+  // Fetch account balance - get network from env or default to mainnet
   const fetchBalance = useCallback(async (accountId: string) => {
     try {
-      const network = (process.env.NEXT_PUBLIC_NEAR_NETWORK as "testnet" | "mainnet") || "testnet";
+      const network = (process.env.NEXT_PUBLIC_NEAR_NETWORK as "testnet" | "mainnet") || "mainnet";
       const balanceInNear = await getAccountBalance(accountId, network);
       setBalance(balanceInNear);
       console.log(`[WalletContext] Fetched balance for ${accountId}: ${balanceInNear} NEAR`);
